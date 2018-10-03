@@ -12,6 +12,8 @@
 
 ; цикл диалога Доктора с пациентом
 ; параметр name -- имя пациента
+; said - список предыдущих реплик
+; fix последняя реплика не должна сразу выдаваться
 (define (doctor-driver-loop name said)
   (newline)
   (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
@@ -24,7 +26,8 @@
             (else (print (reply user-response said)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
                   (doctor-driver-loop name said)))))
 
-; генерация ответной реплики по user-response -- реплике от пользователя 
+; генерация ответной реплики по user-response -- реплике от пользователя
+; fix добавить case
 (define (reply user-response said)
   (if (null? said)
       (if (fifty-fifty)
