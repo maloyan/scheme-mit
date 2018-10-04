@@ -30,10 +30,11 @@
       (if (fifty-fifty)
           (qualifier-answer user-response)
           (hedge))
-      (let ((rand (random 3)))
-        (cond ((= rand 0) (qualifier-answer user-response))
-              ((= rand 1) (hedge)) ; 1й способ
-              ((= rand 2) (history-answer said))))))  ; 2й способ
+      (case (random 3)
+        ([0] (qualifier-answer user-response))
+        ([1] (hedge))
+        ([2] (history-answer said)))))
+
 
 ; возвращает #f с вероятностью 1/2 либо #t с вероятностью 1/2
 (define (fifty-fifty)
