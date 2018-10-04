@@ -13,18 +13,15 @@
 ; цикл диалога Доктора с пациентом
 ; параметр name -- имя пациента
 ; said - список предыдущих реплик
-; fix последняя реплика не должна сразу выдаваться
 (define (doctor-driver-loop name said)
   (newline)
   (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
-  (let* ((user-response (read)) (said (if (null? said)
-                                          (list user-response)
-                                          (cons user-response said))))
+  (let ((user-response (read)))
       (cond ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
              (printf "Goodbye, ~a!\n" name)
              (print '(see you next week)))
             (else (print (reply user-response said)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
-                  (doctor-driver-loop name said)))))
+                  (doctor-driver-loop name (cons user-response said))))))
 
 ; генерация ответной реплики по user-response -- реплике от пользователя
 ; fix добавить case
@@ -70,13 +67,12 @@
                         (me you)
                         (mine yours)
                         (my your)
-			(myself yourself)
+                        (myself yourself)
                         (you i)
                         (your my)
                         (yours mine)
-			(yourself myself))
-                      phrase)
- )
+                        (yourself myself))
+                      phrase))
   
 ; осуществление всех замен в списке lst по ассоциативному списку replacement-pairs
 (define (many-replace replacement-pairs lst)
