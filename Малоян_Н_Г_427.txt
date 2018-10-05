@@ -8,8 +8,7 @@
       ;max - максимальное значение
       ;ans - список с ответом
       ;pos - позиция текущего элемента
-      (foldl (λ(cur ans max pos) (cond ((= cur max) (cons pos ans))
-                                       ((> cur max) ()))))))
+      (apply max lst)))
 (funI '( -1 0 1 -1 0 1 -1)) ;=>(2 5)
 (funI '())                  ;=>()
 (funI '(1 1 1 1))           ;=>(0 1 2 3)
