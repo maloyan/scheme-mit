@@ -1,20 +1,23 @@
 #lang scheme/base
 (require racket/trace)
 
-(define (taskI lst)
-  (define (max lst) (foldl (lambda (x y) (if (> x y)
-                                             x
-                                             y)) 0 lst))
-  (define (helper lst ans cur max)
-    (if (null? lst)
-        (reverse ans)
-        (helper (cdr lst) (if (= max (car lst))
-                              (cons cur ans)
-                              ans) (+ 1 cur) max)))
-  (helper lst '() 0 (max lst))
-  )
-
-;(taskI (list 6 0 4 5 0 1 -1))
+(define (funI lst)
+  (if (null? lst)
+      '()
+      ;cur - текущее значение
+      ;max - максимальное значение
+      ;ans - список с ответом
+      ;pos - позиция текущего элемента
+      (foldl (λ(cur ans max pos) (cond ((= cur max) (cons pos ans))
+                                       ((> cur max) ()))))))
+(funI '( -1 0 1 -1 0 1 -1)) ;=>(2 5)
+(funI '())                  ;=>()
+(funI '(1 1 1 1))           ;=>(0 1 2 3)
+(funI '(1 2 3 4))           ;=>(3)
+(funI '(4 3 2 1))           ;=>(0)
+(funI '(1 2 4 3))           ;=>(2)
+(funI '(-4 -3 -2 -1))       ;=>(3)
+(funI '(-5))                ;=>(0)
 
 (define (taskIIa n)
   (define (find n m)
@@ -74,4 +77,4 @@
                         (begin (set! n (- n x)) (+ 1 (* y 2)))
                         (* y 2))) 0 fiblst)))
 ;(trace taskIIIa)
-(taskIIIa 8)
+;(taskIIIa 8)

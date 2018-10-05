@@ -24,7 +24,6 @@
                   (doctor-driver-loop name (cons user-response said))))))
 
 ; генерация ответной реплики по user-response -- реплике от пользователя
-; fix добавить case
 (define (reply user-response said)
   (if (null? said)
       (if (fifty-fifty)
