@@ -1,0 +1,77 @@
+#lang scheme/base
+(require racket/trace)
+
+(define (taskI lst)
+  (define (max lst) (foldl (lambda (x y) (if (> x y)
+                                             x
+                                             y)) 0 lst))
+  (define (helper lst ans cur max)
+    (if (null? lst)
+        (reverse ans)
+        (helper (cdr lst) (if (= max (car lst))
+                              (cons cur ans)
+                              ans) (+ 1 cur) max)))
+  (helper lst '() 0 (max lst))
+  )
+
+;(taskI (list 6 0 4 5 0 1 -1))
+
+(define (taskIIa n)
+  (define (find n m)
+    (if (= m n)
+        n
+        (if (integer? (/ n m))
+            m
+            (find n (+ m 1)))))
+  (if (= n 1)
+      '()
+      (let ((num (find n 2)))
+        (cons num (taskIIa (/ n num)))))
+  )
+;(taskIIa 13)
+
+(define (taskIIb n)
+  (define (helper n cur last ans)
+    (if (= n 1)
+        ans
+        (if (integer? (/ n cur))
+            (helper (/ n cur) 2
+                    (if (> cur last)
+                        cur
+                        last)
+                    (if (> cur last)
+                        (cons cur ans)
+                        ans))
+            (helper n (+ cur 1) last ans))))
+  (helper n 2 0 '()))
+;(taskIIb 3)
+
+;Находит составляющие из чисел фиббоначи и записывает в лист ()
+(define (taskIIIlst n)
+  (define (fiblst fib n)
+    (let ((cur(+ (car fib) (cadr fib))))
+      (if (<= n cur)
+          fib
+          (fiblst (cons cur fib) n ))))
+  (if (< n 3) 
+      (if (= n 1) '(1) '(2 1))
+      (let* ((fiblst (fiblst '(2 1) n))
+            (first (car fiblst)))
+        (cons first (taskIIIlst (- n first))))))
+;(trace taskIII)
+;(taskIII 9)
+
+; Идея в том, чтобы составить убывающий список фибоначчи, который начинается с элемента, который меньше n.
+; Затем мы берем, а затем вычитаем из n первый элемент этого листа, потом находим в листе элемент < (n - first) и берем его итд
+(define (taskIIIa n)
+  (define (fiblst fib n)
+    (let ((cur(+ (car fib) (cadr fib))))
+      (if (<= n cur)
+          fib
+          (fiblst (cons cur fib) n ))))
+  (let ((fiblst (fiblst '(2 1) n)))
+    (foldl (λ (x y) (if (< x n)
+                        (begin (set! n (- n x)) (+ 1 (* y 2)))
+                        (* y 2))) 0 fiblst)))
+;(trace taskIIIa)
+(taskIIIa 8)
