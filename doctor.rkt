@@ -1,25 +1,39 @@
 ; заготовка "Доктора". Март 2018
-#lang scheme/base
+#lang racket
 ; В учебных целях используется базовая версия Scheme
+
+(define (ask-patient-name)
+  (begin
+    (println '(next!))
+    (println '(who are you?))
+    (print '**)
+    (car (read))))
 
 ; основная функция, запускающая "Доктора"
 ; параметр name -- имя пациента
-(define (visit-doctor name)
-  (printf "Hello, ~a!\n" name)
-  (print '(what seems to be the trouble?))
-  (doctor-driver-loop name null)
-)
+(define (visit-doctor stopword amount)
+  (if (= amount 0)
+      (print '(I'm done for today))
+      (let ((name (ask-patient-name)))
+        (if (equal? name stopword)
+            (print '(time to go home))
+            (begin
+              (printf "Hello, ~a!\n" name)
+              (print '(what seems to be the trouble?))
+              (doctor-driver-loop name null)
+              (visit-doctor stopword (- amount 1)))))))
 
 ; цикл диалога Доктора с пациентом
 ; параметр name -- имя пациента
 ; said - список предыдущих реплик
+; stopword - стопслово для окончания работы
 (define (doctor-driver-loop name said)
   (newline)
   (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
   (let ((user-response (read)))
       (cond ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
              (printf "Goodbye, ~a!\n" name)
-             (print '(see you next week)))
+             (printf "see you next week\n"))
             (else (print (reply user-response said)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
                   (doctor-driver-loop name (cons user-response said))))))
 
