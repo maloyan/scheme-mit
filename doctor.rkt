@@ -38,15 +38,17 @@
                   (doctor-driver-loop name (cons user-response said))))))
 
 ; генерация ответной реплики по user-response -- реплике от пользователя
-(define (reply user-response said)
-  (if (null? said)
-      (if (fifty-fifty)
-          (qualifier-answer user-response)
-          (hedge))
-      (case (random 3)
-        ([0] (qualifier-answer user-response))
-        ([1] (hedge))
-        ([2] (history-answer said)))))
+(define (reply-old user-response said)
+  (if (check-phrase? keywords user-response)
+      (reply-keyword keywords user-response)
+      (if (null? said)
+          (if (fifty-fifty)
+              (qualifier-answer user-response)
+              (hedge))
+          (case (random 3)
+            ([0] (qualifier-answer user-response))
+            ([1] (hedge))
+            ([2] (history-answer said))))))
 
 
 ; возвращает #f с вероятностью 1/2 либо #t с вероятностью 1/2
@@ -55,7 +57,7 @@
 )
 			
 ; 1й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату нового начала
-(define (qualifier-answer user-response)
+(define (qualifier-answer user-response said)
         (append (pick-random '((you seem to think that)
                                (you feel that)
                                (why do you believe that)
@@ -106,7 +108,7 @@
 ;  (helper replacement-pairs lst null))
 
 ; 2й способ генерации ответной реплики -- случайный выбор одной из заготовленных фраз, не связанных с репликой пользователя
-(define (hedge)
+(define (hedge phrase said)
        (pick-random '((please go on)
                        (many people have the same sorts of feelings)
                        (many of my patients have told me the same thing)
@@ -117,5 +119,79 @@
          )
 )
 
-(define (history-answer lst)
-  (append '(earlier you said that) (change-person (pick-random lst))))
+; 3й способ генерации ответной реплики -- добавление одного из предыдущих ответов к словам earlier you said that
+(define (history-answer phrase said)
+  (append '(earlier you said that) (change-person (pick-random said))))
+
+;Ключевые слова и реплики к ним
+; сначала идут group слов, в которой содержатся ключевые слова
+(define keywords
+  '(((depressed suicide exams university)
+     ((when you feel depressed, go out for ice cream)
+      (depression is a disease that can be treated)))
+    ((mother father parents brother sister uncle aunt grandma grandpa)
+     ((tell me more about your * , i want to know all about your *)
+     (why do you feel that way about your * ?)))
+    ((university scheme lections)
+     ((your education is important)
+      (how many time do you spend to learning?)))
+    ((health sick healthy ill)
+     ((since when do you feel ill?)
+      (i can give you medicine)))
+    ((tired lazy)
+     ((get back to work, you sluggard fool!)
+      (you certainly should take a vacation)))))
+
+; функция, проверяющее включение слова в список
+; word - слово
+; lst - список
+(define (word-in-list? word lst)
+  (foldl (λ (x y) (if (equal? x word)
+                      #t
+                      y)) #f lst))
+
+; проверка наличия ключевых слов во фразе
+(define (check-phrase? phrase said)
+  (define (keyword-in-phrase keyword)
+    (foldl (λ (x y) (if (word-in-list? x phrase)
+                        #t
+                        y)) #f (car keyword)))
+  (ormap keyword-in-phrase keywords))
+
+; 4й способ генерации ответной реплики
+; из группы ключевых слов мы находим матчи. Если матчей в одной группе несколько, то выбираем один из них. Если матчей нет, то #f
+; Получается список из #f и ключевых слов, которые заматчились. Выбираем из этого списка на рандоме заматченные слова.
+; Записываем это выбранное слово с репликами в final-group. Выбираем из этих реплик какую-либо на рандоме. Если надо, заменяем * на слово.
+; keywords - ключевые слова с репликами
+; phrase - фраза, написанная пользователем
+(define (reply-keyword phrase said)
+  (let ((final-group (pick-random (filter (lambda (x) (not (eq? x #f)))
+                                          (map
+                                           (λ(x) (let ((match (filter (λ (y) (word-in-list? y phrase)) (car x))))
+                                                   (if (null? match)
+                                                       #f
+                                                       (list (pick-random match) (cadr x))))) keywords)))))
+    (many-replace (list(list '* (car final-group))) (pick-random (cadr final-group)))))
+
+(define (always-true phrase said) #t)
+(define (check-null phrase said) (not (null? said)))
+
+(define (possible-replies phrase said)
+    (list
+     (list always-true 1 qualifier-answer)
+     (list always-true 1 hedge)
+     (list check-null  1 history-answer)
+     (list check-phrase? 1 reply-keyword)))
+
+
+(define (weighted-random lst)
+  (define (choise prob lst)
+    (cond ((null? lst) #f)
+          ((< prob (cadar lst)) (cons (caar lst) (cddar lst)))
+          (else (choise (- prob (cadar lst)) (cdr lst)))))
+  (let ((sum (foldl (lambda (x y) (+ y (cadr x))) 0 lst)))
+    (choise (* sum (random)) lst)))
+  
+(define (reply phrase said)
+  (let ((correct (filter (lambda (x) ((car x) phrase said))  (possible-replies phrase said))))
+    ((cadr (weighted-random correct)) phrase said)))
