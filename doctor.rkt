@@ -10,7 +10,7 @@
     (car (read))))
 
 ; основная функция, запускающая "Доктора"
-; параметр name -- имя пациента
+; fix
 (define (visit-doctor stopword amount)
   (if (= amount 0)
       (print '(I'm done for today))
@@ -145,12 +145,14 @@
 ; функция, проверяющее включение слова в список
 ; word - слово
 ; lst - список
+; fix ormap
 (define (word-in-list? word lst)
   (foldl (λ (x y) (if (equal? x word)
                       #t
                       y)) #f lst))
 
 ; проверка наличия ключевых слов во фразе
+; fix ormap
 (define (check-phrase? phrase said)
   (define (keyword-in-phrase keyword)
     (foldl (λ (x y) (if (word-in-list? x phrase)
@@ -164,8 +166,9 @@
 ; Записываем это выбранное слово с репликами в final-group. Выбираем из этих реплик какую-либо на рандоме. Если надо, заменяем * на слово.
 ; keywords - ключевые слова с репликами
 ; phrase - фраза, написанная пользователем
+; fix - try to make easier
 (define (reply-keyword phrase said)
-  (let ((final-group (pick-random (filter (lambda (x) (not (eq? x #f)))
+  (let ((final-group (pick-random (filter (lambda (x) x)
                                           (map
                                            (λ(x) (let ((match (filter (λ (y) (word-in-list? y phrase)) (car x))))
                                                    (if (null? match)
@@ -175,7 +178,7 @@
 
 (define (always-true phrase said) #t)
 (define (check-null phrase said) (not (null? said)))
-
+;fix заменить на переменную
 (define (possible-replies phrase said)
     (list
      (list always-true 1 qualifier-answer)
@@ -183,11 +186,10 @@
      (list check-null  1 history-answer)
      (list check-phrase? 1 reply-keyword)))
 
-
 (define (weighted-random lst)
   (define (choise prob lst)
     (cond ((null? lst) #f)
-          ((< prob (cadar lst)) (cons (caar lst) (cddar lst)))
+          ((< prob (cadar lst)) (cons (caar lst) (cddar lst)));не нужен cons
           (else (choise (- prob (cadar lst)) (cdr lst)))))
   (let ((sum (foldl (lambda (x y) (+ y (cadr x))) 0 lst)))
     (choise (* sum (random)) lst)))
