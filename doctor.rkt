@@ -1,5 +1,5 @@
 ; заготовка "Доктора". Март 2018
-#lang racket
+#lang scheme/base
 ; В учебных целях используется базовая версия Scheme
 
 (define (ask-patient-name)
@@ -10,7 +10,8 @@
     (car (read))))
 
 ; основная функция, запускающая "Доктора"
-; fix
+; stopword - стопслова, после которых доктор завершает работу
+; amout - кол-во пациентов в текущую сессию
 (define (visit-doctor stopword amount)
   (if (= amount 0)
       (print '(I'm done for today))
@@ -36,25 +37,6 @@
              (printf "see you next week\n"))
             (else (print (reply user-response said)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
                   (doctor-driver-loop name (cons user-response said))))))
-
-; генерация ответной реплики по user-response -- реплике от пользователя
-(define (reply-old user-response said)
-  (if (check-phrase? keywords user-response)
-      (reply-keyword keywords user-response)
-      (if (null? said)
-          (if (fifty-fifty)
-              (qualifier-answer user-response)
-              (hedge))
-          (case (random 3)
-            ([0] (qualifier-answer user-response))
-            ([1] (hedge))
-            ([2] (history-answer said))))))
-
-
-; возвращает #f с вероятностью 1/2 либо #t с вероятностью 1/2
-(define (fifty-fifty)
-  (= (random 2) 0)
-)
 			
 ; 1й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату нового начала
 (define (qualifier-answer user-response said)
@@ -64,16 +46,12 @@
                                (why do you say that)
                                (are you sure that)
                                (how did you notice that)
-                               (it is unusual that))
-                )
-                (change-person user-response)
-        )
- )
+                               (it is unusual that)))
+                (change-person user-response)))
 
 ; случайный выбор одного из элементов списка lst
 (define (pick-random lst)
-  (list-ref lst (random (length lst)))
-)
+  (list-ref lst (random (length lst))))
 
 ; замена лица во фразе			
 (define (change-person phrase)
@@ -97,15 +75,6 @@
                           (cadr pat-rep)
                           x 
                           ))) lst))
-;(define (many-replace replacement-pairs lst)  
-;  (define (helper replacement-pairs lst ans)
-;        (cond ((null? lst) (reverse ans))
-;              (else (let ((pat-rep (assoc (car lst) replacement-pairs))) ; Доктор ищет первый элемент списка в ассоциативном списке замен
-;                      (if pat-rep
-;                          (helper replacement-pairs (cdr lst) (cons (cadr pat-rep) ans)) ; если поиск был удачен, то в начало ответа Доктор пишет замену
-;                          (helper replacement-pairs (cdr lst) (cons (car lst) ans))) ; иначе в начале ответа помещается начало списка без изменений
-;                      )))) ; рекурсивно производятся замены в хвосте списка
-;  (helper replacement-pairs lst null))
 
 ; 2й способ генерации ответной реплики -- случайный выбор одной из заготовленных фраз, не связанных с репликой пользователя
 (define (hedge phrase said)
@@ -120,11 +89,13 @@
 )
 
 ; 3й способ генерации ответной реплики -- добавление одного из предыдущих ответов к словам earlier you said that
+; phrase - фраза пользователя
+; said - список реплик, сказанных пациентом ранее
 (define (history-answer phrase said)
   (append '(earlier you said that) (change-person (pick-random said))))
 
-;Ключевые слова и реплики к ним
-; сначала идут group слов, в которой содержатся ключевые слова
+; Ключевые слова и реплики к ним
+; Сначала идут group слов, в которой содержатся ключевые слова
 (define keywords
   '(((depressed suicide exams university)
      ((when you feel depressed, go out for ice cream)
@@ -145,20 +116,8 @@
 ; функция, проверяющее включение слова в список
 ; word - слово
 ; lst - список
-; fix ormap
 (define (word-in-list? word lst)
-  (foldl (λ (x y) (if (equal? x word)
-                      #t
-                      y)) #f lst))
-
-; проверка наличия ключевых слов во фразе
-; fix ormap
-(define (check-phrase? phrase said)
-  (define (keyword-in-phrase keyword)
-    (foldl (λ (x y) (if (word-in-list? x phrase)
-                        #t
-                        y)) #f (car keyword)))
-  (ormap keyword-in-phrase keywords))
+  (ormap (λ (x) (equal? x word)) lst))
 
 ; 4й способ генерации ответной реплики
 ; из группы ключевых слов мы находим матчи. Если матчей в одной группе несколько, то выбираем один из них. Если матчей нет, то #f
@@ -166,34 +125,37 @@
 ; Записываем это выбранное слово с репликами в final-group. Выбираем из этих реплик какую-либо на рандоме. Если надо, заменяем * на слово.
 ; keywords - ключевые слова с репликами
 ; phrase - фраза, написанная пользователем
-; fix - try to make easier
 (define (reply-keyword phrase said)
-  (let ((final-group (pick-random (filter (lambda (x) x)
-                                          (map
-                                           (λ(x) (let ((match (filter (λ (y) (word-in-list? y phrase)) (car x))))
-                                                   (if (null? match)
-                                                       #f
-                                                       (list (pick-random match) (cadr x))))) keywords)))))
+  (define (find keys)
+    (let ((match (filter (λ (y) (word-in-list? y phrase)) (car keys))))
+      (if (null? match)
+          #f
+          (list (pick-random match) (cadr keys)))))
+  (let ((final-group (pick-random (filter (λ (x) x) (map find keywords)))))
     (many-replace (list(list '* (car final-group))) (pick-random (cadr final-group)))))
 
-(define (always-true phrase said) #t)
-(define (check-null phrase said) (not (null? said)))
-;fix заменить на переменную
-(define (possible-replies phrase said)
+ 
+; проверка наличия ключевых слов во фразе
+(define (check-phrase? phrase said)
+  (define (keyword-in-phrase keyword) (ormap (λ (x) (word-in-list? x phrase)) (car keyword)))
+  (ormap keyword-in-phrase keywords))
+
+(define replies-list
     (list
-     (list always-true 1 qualifier-answer)
-     (list always-true 1 hedge)
-     (list check-null  1 history-answer)
-     (list check-phrase? 1 reply-keyword)))
+     (list (λ(x y) #t) 1 qualifier-answer)
+     (list (λ(x y) #t) 1 hedge)
+     (list (λ(x said) (not (null? said))) 2 history-answer)
+     (list check-phrase? 4 reply-keyword)))
 
 (define (weighted-random lst)
-  (define (choise prob lst)
+  (define (method prob lst)
     (cond ((null? lst) #f)
-          ((< prob (cadar lst)) (cons (caar lst) (cddar lst)));не нужен cons
-          (else (choise (- prob (cadar lst)) (cdr lst)))))
+          ((< prob (cadar lst)) (caddar lst))
+          (else (method (- prob (cadar lst)) (cdr lst)))))
   (let ((sum (foldl (lambda (x y) (+ y (cadr x))) 0 lst)))
-    (choise (* sum (random)) lst)))
-  
+    (method (* sum (random)) lst)))
+
+
 (define (reply phrase said)
-  (let ((correct (filter (lambda (x) ((car x) phrase said))  (possible-replies phrase said))))
-    ((cadr (weighted-random correct)) phrase said)))
+  (let ((correct (filter (λ (x) ((car x) phrase said)) replies-list)))
+    ((weighted-random correct) phrase said)))
