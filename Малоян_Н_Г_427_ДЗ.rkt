@@ -15,7 +15,9 @@
 (define (delete-queue! q)
   (cond ((not (empty-queue? q))
          (set-mcar! q (mcdr (mcar q)))
-         q)))
+         (if (null? (mcdr q))
+             q
+             (set-mcdr! q null)))))
 
 (define (queue? q) (and (not (null? q)) (mlist? (mcar q)) (mlist? (mcdr q))))
 
