@@ -4,7 +4,7 @@
 (define (make-queue) (mcons (mlist) (mlist)))
 
 (define (front-queue q)
-  (cond ((not (empty-queue? q)) (caar q))))
+  (cond ((not (empty-queue? q)) (mcar (mcar q)))))
 
 (define (insert-queue! q e)
   (let ((new-pair (mcons e '())))
@@ -17,6 +17,6 @@
          (set-mcar! q (mcdr (mcar q)))
          q)))
 
-(define (queue? q) (and (mlist? (mcar q)) (mlist? (mcdr q))))
+(define (queue? q) (and (not (null? q)) (mlist? (mcar q)) (mlist? (mcdr q))))
 
 (define (empty-queue? q) (null? (mcar q)))
