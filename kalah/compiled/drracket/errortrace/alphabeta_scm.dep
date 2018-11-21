@@ -1,0 +1,1 @@
+("7.0" ("49d801f9f4cf37723c25d8c0750a3239def7b7b7" . "722af09ffca02ae639dea43650e6251e5ccfe881") #"/Users/narek/scheme-mit/kalah/game.scm" (collects #"errortrace" #"errortrace-key.rkt") (collects #"lang" #"plt-pretty-big.rkt") (collects #"mzscheme" #"main.rkt"))

@@ -1,0 +1,1 @@
+("7.0" ("b2b7d8818269771e801681f0a4fa75da8bc29bf8" . "cddc98b31dbaed31c7f20acad47b572fb9f175f9") #"/Users/narek/scheme-mit/kalah/general.scm" (collects #"errortrace" #"errortrace-key.rkt") (collects #"lang" #"plt-pretty-big.rkt") (collects #"mzscheme" #"main.rkt"))
