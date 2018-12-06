@@ -77,7 +77,9 @@
           ((not (zero? (list-ref (cdr state) slot))) #t)
           (else (plays? (+ 1 slot) (- left 1)))))
   (or (not (plays? 0 6))
-      (not (plays? 7 6))))
+      (not (plays? 7 6))
+      (> (list-ref (cdr state) 6) 36)
+      (> (list-ref (cdr state) 13) 36)))
 
 ; Выиграл ли игрок player при игровой ситуации state
 (define (kalah-win? player state)
