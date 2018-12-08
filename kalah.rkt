@@ -1,3 +1,4 @@
+
 #lang racket
 (require racket/trace)
 
@@ -182,8 +183,8 @@
 (define game-start-state    (game-check "game-start-state" (r-s list-ref 4)))
 (define game-display-fun    (game-check "game-display-fun" (r-s list-ref 5)))
 
-
-(define (game-play game player1 player2)
+(define game-play 
+  (lambda (game player1 player2)
     (let play ((state (game-start-state game)))
       ((game-display-fun game) state)
       (if ((game-terminal? game) state)
@@ -196,29 +197,151 @@
             (display "Draw!") (newline)))
           
           (let ((move (if (car state)
-                      (begin (display "Player 1, Ваш ход\n") (player1 (cdr state)))
-                      (begin (display "Player 2, Ваш ход\n") (player2 (cdr state))))))
-            (let ((new-state (assoc move ((game-successors-fun game) state))))
-              (play (cdr new-state)))))))
+                      (begin (display "Player 1, Ваш ход\n") (player1 state))
+                      (begin (display "Player 2, Ваш ход\n") (player2 state)))))
+            (display "Player ") 
+            (display (if (car state) "1" "2")) 
+            (display " сыграл ")
+            (display move)
+            (newline)
 
+            (play (cdr (assoc move ((game-successors-fun game) state)))))))))
 
+; Игрок - компьютер, играющий с помощью минмакс с альфа бета отсечением
+; Принимает текущее состояние игры и выдает номер хода
+; game  -
+; plies -
+; evaluation-fun - функция, которая считает наши очки (кол-во камней в калахе)
+(define (make-alpha-beta-player game plies evaluation-fun)
+  (λ (state)
+    (car (alpha-beta-max-value game state
+                             -inf.0 +inf.0 
+                             0 plies 
+                             evaluation-fun))))
+
+; Для вершины Max
+; Псевдокод
+; Max-Value (s, alpha, beta):
+;   if terminal(s) return U(s)
+;   v = -inf
+;   for c in next-states(s):
+;     v' = Min-value(c, alpha, beta)
+;     if v' > v, v = v'
+;     if v' >= beta, return v
+;     if v' > alpha, return v'
+;   return v
+(define (alpha-beta-max-value game state alpha beta depth plies evaluation-fun)
+  ; Проверка на то, достигли ли мы максимальной глубины или терминального хода
+  (cond [(or (= depth plies) ((game-terminal? game) state))
+         (cons null (evaluation-fun state))]
+        [else (let loop ([successors ((game-successors-fun game) state)]
+                         [argmax null]
+                         [maxval null]
+                         [loop-alpha alpha])
+                
+                (if (or (null? successors) (not loop-alpha))
+                    ; Нет пар (ход . положение доски) или цикл закончился
+                    (cons argmax maxval)
+                    ; Вызываем Min
+                    (let* ([action-value (alpha-beta-min-value 
+                                          game 
+                                          (cdar successors)
+                                          loop-alpha
+                                          beta
+                                          depth
+                                          plies
+                                          evaluation-fun)]
+                           [val (cdr action-value)])
+                      (cond [(or (null? argmax) (> val maxval))
+                             (loop (cdr successors)
+                                   (caar successors)
+                                   val
+                                   (if (>= val beta)
+                                       #f
+                                       (max loop-alpha val)))]              
+                            [else (loop (cdr successors) 
+                                        argmax
+                                        maxval 
+                                        loop-alpha)]))))]))
+
+    
+; Для вершины Min
+; Псевдокод
+; Min-Value (s, alpha, beta):
+;   if terminal(s) return U(s)
+;   v = +inf
+;   for c in next-states(s):
+;     v' = Max-value(c, alpha, beta)
+;     if v' < v, v = v'
+;     if v' <= alpha, return v
+;     if v' < beta, return v'
+;   return v
+(define (alpha-beta-min-value game state alpha beta depth plies evaluation-fun)
+  (cond [(or (= depth plies) ((game-terminal? game) state))
+         (cons null (evaluation-fun state))] 
+        [else (let loop ([successors ((game-successors-fun game) state)]
+                         [argmin null] 
+                         [minval null]
+                         [loop-beta beta])
+		 
+                (if (or (null? successors) (not loop-beta))
+                    (cons argmin minval)
+                    (let* ([action-value (alpha-beta-max-value 
+                                          game 
+                                          (cdar successors)
+                                          alpha
+                                          loop-beta
+                                          (+ 1 depth)
+                                          plies
+                                          evaluation-fun)]
+                           [val (cdr action-value)])
+                      (cond  [(or (null? argmin) (< val minval)) 
+                              (loop (cdr successors)
+                                    (caar successors)
+                                    val
+                                    (if (<= val alpha)
+                                        #f
+                                        (min loop-beta val)))]
+                             [else (loop (cdr successors)  
+                                         argmin 
+                                         minval 
+                                         loop-beta)]))))]))
+
+; Функция считающая очки (камни в калахе)
+(define (simple-mancala-eval player)
+  (lambda (state)
+    (let ((board (cdr state)))
+      (list-ref board (if player 6 13)))))
+
+; Инициализация игры
 (define kalah (make-kalah-game))
 
-(define (user1 board)
-  (let ((move (read)))
+; Игрок1 - человек
+(define (user1 state)
+  (let ((move (read))
+        (board (cdr state)))
     (if (and (<= 0 move 5) (not (= 0 (list-ref board move))))
         move
         (begin
           (display "Выберите непустое поле от 0 до 5\n")
           (user1 board)))))
 
-(define (user2 board)
-  
-  (let ((move (read)))
+; Игрок2 - человек
+(define (user2 state)
+  (let ((move (read))
+        (board (cdr state)))
     (if (and (<= 7 move 12) (not (= 0 (list-ref board move))))
         move
         (begin
           (display "Выберите непустое поле от 7 до 13\n")
           (user2 board)))))
+; Игрок1 - ИИ
+(define simple-mancala-best-player1
+  (make-alpha-beta-player kalah 5 (simple-mancala-eval #t)))
 
-(game-play kalah user1 user2)
+; Игрок2 - ИИ
+(define simple-mancala-best-player2
+  (make-alpha-beta-player kalah 5 (simple-mancala-eval #f)))
+
+;(game-play kalah simple-mancala-best-player1 simple-mancala-best-player2)
+(game-play kalah user1 simple-mancala-best-player2)
