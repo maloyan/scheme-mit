@@ -1,5 +1,5 @@
-
 #lang racket
+(require racket/gui/base)
 (require racket/trace)
 
 ; Описание игровой ситуации
@@ -99,7 +99,7 @@
   (list #t 6 6 6 6 6 6 0 6 6 6 6 6 6 0))
 
 ; Функция для отображения игрового поля
-(define (kalah-display-board state)
+(define (kalah-display-board1 state)
   (let ((board (cdr state))
         (player (car state)))
   (define (disp-num num)
@@ -176,36 +176,6 @@
 	  (error (string-append source-proc ": Expected a game, given ") game)
 	  (op game)))))
 
-
-(define game-successors-fun (game-check "game-successors-fun" cadr))
-(define game-terminal?      (game-check "game-terminal?" (r-s list-ref 2)))
-(define game-win?           (game-check "game-win?" (r-s list-ref 3)))
-(define game-start-state    (game-check "game-start-state" (r-s list-ref 4)))
-(define game-display-fun    (game-check "game-display-fun" (r-s list-ref 5)))
-
-(define game-play 
-  (lambda (game player1 player2)
-    (let play ((state (game-start-state game)))
-      ((game-display-fun game) state)
-      (if ((game-terminal? game) state)
-          (cond
-           (((game-win? game) #t state)
-            (display "Player 1 Wins!") (newline))
-           (((game-win? game) #f state)
-            (display "Player 2 Wins!") (newline))
-           (else
-            (display "Draw!") (newline)))
-          
-          (let ((move (if (car state)
-                      (begin (display "Player 1, Ваш ход\n") (player1 state))
-                      (begin (display "Player 2, Ваш ход\n") (player2 state)))))
-            (display "Player ") 
-            (display (if (car state) "1" "2")) 
-            (display " сыграл ")
-            (display move)
-            (newline)
-
-            (play (cdr (assoc move ((game-successors-fun game) state)))))))))
 
 ; Игрок - компьютер, играющий с помощью минмакс с альфа бета отсечением
 ; Принимает текущее состояние игры и выдает номер хода
@@ -307,34 +277,96 @@
                                          minval 
                                          loop-beta)]))))]))
 
-; Функция считающая очки (камни в калахе)
+; Функция, считающая очки (камни в калахе)
 (define (simple-mancala-eval player)
   (lambda (state)
     (let ((board (cdr state)))
       (list-ref board (if player 6 13)))))
 
+
+(define game-successors-fun (game-check "game-successors-fun" cadr))
+(define game-terminal?      (game-check "game-terminal?" (r-s list-ref 2)))
+(define game-win?           (game-check "game-win?" (r-s list-ref 3)))
+(define game-start-state    (game-check "game-start-state" (r-s list-ref 4)))
+(define game-display-fun    (game-check "game-display-fun" (r-s list-ref 5)))
+
+(define new-state
+  (list #t 6 6 6 6 6 6 0 6 6 6 6 6 6 0))
+
+(define (play-pvp state game)
+  (if ((game-terminal? game) state)
+      (begin
+        (for ([x '(0 1 2 3 4 5)])
+          (send (vector-ref botbut x) set-label (number->string (list-ref state (+ x 1))))
+          (send (vector-ref botbut x) enable #f)
+            
+          (send (vector-ref topbut x) set-label (number->string (list-ref state (+ x 8))))
+          (send (vector-ref topbut x) enable #f))
+        (send klhb set-label (number->string (list-ref state 7)))
+        (send klht set-label (number->string (list-ref state 14)))
+        (cond
+          (((game-win? game) #t state)
+           (send msg set-label "Первый игрок победил!"))
+          (((game-win? game) #f state)
+           (send msg set-label "Второй игрок победил!"))
+          (else
+           (send msg set-label "Ничья!"))))
+
+      (begin
+        (for ([x '(0 1 2 3 4 5)])
+          (send (vector-ref botbut x) set-label (number->string (list-ref state (+ x 1))))
+          (send (vector-ref botbut x) enable (car state))
+            
+          (send (vector-ref topbut x) set-label (number->string (list-ref state (+ x 8))))
+          (send (vector-ref topbut x) enable (not (car state))))
+          
+        (send klhb set-label (number->string (list-ref state 7)))
+        (send klht set-label (number->string (list-ref state 14))))))
+
+
+(define (play-cvc game player1 player2)
+  (let play ((state (game-start-state game)))
+    (if ((game-terminal? game) state)
+        (begin
+          (for ([x '(0 1 2 3 4 5)])
+            (send (vector-ref botbut x) set-label (number->string (list-ref state (+ x 1))))
+            (send (vector-ref botbut x) enable #f)
+            
+            (send (vector-ref topbut x) set-label (number->string (list-ref state (+ x 8))))
+            (send (vector-ref topbut x) enable #f))
+          (send klhb set-label (number->string (list-ref state 7)))
+          (send klht set-label (number->string (list-ref state 14)))
+          (cond
+            (((game-win? game) #t state)
+             (send msg set-label "Первый игрок победил!"))
+            (((game-win? game) #f state)
+             (send msg set-label "Второй игрок победил!"))
+            (else
+             (send msg set-label "Ничья!"))))
+          
+        (let ((move (if (car state)
+                        (player1 state)
+                        (player2 state))))
+          (begin
+            (for ([x '(0 1 2 3 4 5)])
+              (send (vector-ref botbut x) set-label (number->string (list-ref state (+ x 1))))
+              (send (vector-ref botbut x) enable (car state))
+            
+              (send (vector-ref topbut x) set-label (number->string (list-ref state (+ x 8))))
+              (send (vector-ref topbut x) enable (not (car state))))
+          
+            (send klhb set-label (number->string (list-ref state 7)))
+            (send klht set-label (number->string (list-ref state 14)))
+            (sleep 1)
+            (play (cdr (assoc move ((game-successors-fun game) state)))))))))
+
+
+
+(define (kalah-display-board board) #t)
+
 ; Инициализация игры
 (define kalah (make-kalah-game))
 
-; Игрок1 - человек
-(define (user1 state)
-  (let ((move (read))
-        (board (cdr state)))
-    (if (and (<= 0 move 5) (not (= 0 (list-ref board move))))
-        move
-        (begin
-          (display "Выберите непустое поле от 0 до 5\n")
-          (user1 board)))))
-
-; Игрок2 - человек
-(define (user2 state)
-  (let ((move (read))
-        (board (cdr state)))
-    (if (and (<= 7 move 12) (not (= 0 (list-ref board move))))
-        move
-        (begin
-          (display "Выберите непустое поле от 7 до 13\n")
-          (user2 board)))))
 ; Игрок1 - ИИ
 (define simple-mancala-best-player1
   (make-alpha-beta-player kalah 5 (simple-mancala-eval #t)))
@@ -343,5 +375,108 @@
 (define simple-mancala-best-player2
   (make-alpha-beta-player kalah 5 (simple-mancala-eval #f)))
 
-;(game-play kalah simple-mancala-best-player1 simple-mancala-best-player2)
-(game-play kalah user1 simple-mancala-best-player2)
+
+
+; Шрифт
+(define fnt (make-object font% 14 'system))
+  (define fnt1 (make-object font% 48 'system))
+
+
+; Основное окно
+(define frame (new frame% [label "Калах"]
+                   [alignment '(center center)]
+                   [width 1000]
+                   [height 600]))
+
+; статичное сообщение сверху окна
+(define msg (new message% [parent frame]
+                 [min-width 350]
+                 [min-height 50]
+                 [font fnt]
+                 [auto-resize #t]
+                 [label "Выберите режим игры"]))
+ 
+; Кнопка для новой игры PvP
+(new button% [parent frame]
+     [label "Новая игра (PvP)"]
+     [vert-margin 8]
+     [horiz-margin 8]
+     [min-width 330]
+     [min-height 50]
+     [font fnt]
+     [callback (lambda (button event)
+                 (begin
+                  (set! new-state kalah-start-state)
+                  (play-pvp (game-start-state kalah) kalah)))])
+
+; Кнопка для новой игры CvC
+(new button% [parent frame]
+     [label "Новая игра (CvC)"]
+     [vert-margin 8]
+     [horiz-margin 8]
+     [min-width 330]
+     [min-height 50]
+     [font fnt]
+     [callback (lambda (button event)
+                  (play-cvc kalah simple-mancala-best-player1 simple-mancala-best-player2))])
+
+; Игровое поле
+(define panel1 (new horizontal-panel% [parent frame]
+                    [style '(border)]
+                    [min-height 400]))
+; Калах второго игрока
+(define kalah1 (new panel% [parent panel1]
+                    [style '(border)]
+                    [min-width 300]))
+; Игровая доска
+(define board (new vertical-panel% [parent panel1]
+                   [style '(border)]
+                   [min-width 600]))
+; Калах второго игрока
+(define kalah2 (new panel% [parent panel1]
+                    [style '(border)]
+                    [min-width 300]))
+; Кол-во камней у второго игрока
+(define klht (new message% [parent kalah1]
+                  [label "0"]
+                  [font fnt1]
+                  [auto-resize #t]))
+; Кол-во камней у первого игрока
+(define klhb (new message% [parent kalah2]
+                  [label "0"]
+                  [font fnt1]
+                  [auto-resize #t]))
+; Верхние ямы
+(define top (new horizontal-panel% [parent board]
+                 [style '(border)]
+                 [alignment '(center center)]
+                 [min-height 200]))
+; Нижние ямы
+(define bot (new horizontal-panel% [parent board]
+                    [style '(border)]
+                    [alignment '(center center)]
+                    [min-height 200]))
+
+(define topbut (make-vector 6))
+(for ([i '(5 4 3 2 1 0)])
+  (vector-set! topbut i (new button% [parent top]
+                             [label (number->string 0)]
+                             [font fnt]
+                             [horiz-margin 8]
+                             [callback (lambda (button event)
+                                         (begin
+                                          (set! new-state (cdr (assoc (+ i 7) ((game-successors-fun kalah) new-state))))
+                                          (play-pvp new-state kalah)))])))
+
+(define botbut (make-vector 6))
+(for ([x '(0 1 2 3 4 5)])
+  (vector-set! botbut x (new button% [parent bot]
+                             [label (number->string 0)]
+                             [font fnt]
+                             [horiz-margin 8]
+                             [callback (lambda (button event)
+                                         (begin
+                                          (set! new-state (cdr (assoc x ((game-successors-fun kalah) new-state))))
+                                          (play-pvp new-state kalah)))])))
+
+(send frame show #t)
