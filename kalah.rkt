@@ -12,6 +12,7 @@
    kalah-start-state
    kalah-display-board))
 
+
 ; Создает список всех возможных ходов
 (define (kalah-successor-fun state)
   
@@ -97,84 +98,27 @@
 ; Начальное состояние игрового поля
 (define kalah-start-state
   (list #t 6 6 6 6 6 6 0 6 6 6 6 6 6 0))
-
-; Функция для отображения игрового поля
-(define (kalah-display-board1 state)
-  (let ((board (cdr state))
-        (player (car state)))
-  (define (disp-num num)
-    (cond ((< num 10) (display " ")))
-    (display num))
-  (define(disp-board-row op slot left)
-    (cond ((not (zero? left))
-           (display "(")
-           (disp-num (list-ref board slot))
-           (display ") ")
-           (disp-board-row op (op slot 1) (- left 1)))))
-  (define (disp-slot-row op slot left)
-    (cond ((not (zero? left))
-           (display "  ")
-           (disp-num slot)
-           (display " ")
-           (disp-slot-row op (op slot 1) (- left 1)))))
-  (begin
-    ;; DISPLAY PLAYER B
-    (display "(  )  12   11   10    9    8    7  (  ) Player 2")
-    (newline)
-    (display "---------------------------------------")
-    (newline)
-
-    (display "(  ) ")
-    (disp-board-row - 12 6)
-    (display "(  ) ")
-    (newline)
-
-    ;; DISPLAY kalah (MANCALI?)
-    (display "(")
-    (disp-num (list-ref board 13))
-    (display ")")
-      
-    (display "                              ")
-
-    (display " (")
-    (disp-num (list-ref board 6))
-    (display ")")
-
-    (newline)
-
-      
-    ;; DISPLAY PLAYER A
-
-    (display "(  ) ")
-    (disp-board-row + 0 6)
-    (display "(  ) ")
-    (newline)
-
-    (display "---------------------------------------")
-    (newline)
-    
-    (display "(  )   0    1    2    3    4    5  (  ) Player 1")
-    (newline))))
+(define (kalah-display-board) #t)
 
 (define (r-s proc arg2)
-    (lambda (arg1)
-      (proc arg1 arg2)))
+  (lambda (arg1)
+    (proc arg1 arg2)))
 
 (define (game? value)
-    (and (list? value)
-	 (= 6 (length value))
-	 (equal? (car value) 'game)
-	 (procedure? (cadr value))
-	 (procedure? (caddr value))
-	 (procedure? (cadddr value))
-	 (procedure? (list-ref value 5))))
+  (and (list? value)
+       (= 6 (length value))
+       (equal? (car value) 'game)
+       (procedure? (cadr value))
+       (procedure? (caddr value))
+       (procedure? (cadddr value))
+       (procedure? (list-ref value 5))))
 
 (define game-check
   (lambda (source-proc op)
     (lambda (game)
       (if (not (game? game))
-	  (error (string-append source-proc ": Expected a game, given ") game)
-	  (op game)))))
+          (error (string-append source-proc ": Expected a game, given ") game)
+          (op game)))))
 
 
 ; Игрок - компьютер, играющий с помощью минмакс с альфа бета отсечением
@@ -185,9 +129,9 @@
 (define (make-alpha-beta-player game plies evaluation-fun)
   (λ (state)
     (car (alpha-beta-max-value game state
-                             -inf.0 +inf.0 
-                             0 plies 
-                             evaluation-fun))))
+                               -inf.0 +inf.0 
+                               0 plies 
+                               evaluation-fun))))
 
 ; Для вершины Max
 ; Псевдокод
@@ -288,7 +232,6 @@
 (define game-terminal?      (game-check "game-terminal?" (r-s list-ref 2)))
 (define game-win?           (game-check "game-win?" (r-s list-ref 3)))
 (define game-start-state    (game-check "game-start-state" (r-s list-ref 4)))
-(define game-display-fun    (game-check "game-display-fun" (r-s list-ref 5)))
 
 (define new-state
   (list #t 6 6 6 6 6 6 0 6 6 6 6 6 6 0))
@@ -321,7 +264,10 @@
           (send (vector-ref topbut x) enable (not (car state))))
           
         (send klhb set-label (number->string (list-ref state 7)))
-        (send klht set-label (number->string (list-ref state 14))))))
+        (send klht set-label (number->string (list-ref state 14)))
+        (if (car state)
+            (send msg set-label "1-Игрок, Ваш ход")
+            (send msg set-label "2-Игрок, Ваш ход")))))
 
 
 (define (play-cvc game player1 player2)
@@ -360,10 +306,6 @@
             (sleep 1)
             (play (cdr (assoc move ((game-successors-fun game) state)))))))))
 
-
-
-(define (kalah-display-board board) #t)
-
 ; Инициализация игры
 (define kalah (make-kalah-game))
 
@@ -375,12 +317,9 @@
 (define simple-mancala-best-player2
   (make-alpha-beta-player kalah 5 (simple-mancala-eval #f)))
 
-
-
 ; Шрифт
 (define fnt (make-object font% 14 'system))
-  (define fnt1 (make-object font% 48 'system))
-
+(define fnt1 (make-object font% 48 'system))
 
 ; Основное окно
 (define frame (new frame% [label "Калах"]
@@ -388,42 +327,11 @@
                    [width 1000]
                    [height 600]))
 
-; статичное сообщение сверху окна
-(define msg (new message% [parent frame]
-                 [min-width 350]
-                 [min-height 50]
-                 [font fnt]
-                 [auto-resize #t]
-                 [label "Выберите режим игры"]))
- 
-; Кнопка для новой игры PvP
-(new button% [parent frame]
-     [label "Новая игра (PvP)"]
-     [vert-margin 8]
-     [horiz-margin 8]
-     [min-width 330]
-     [min-height 50]
-     [font fnt]
-     [callback (lambda (button event)
-                 (begin
-                  (set! new-state kalah-start-state)
-                  (play-pvp (game-start-state kalah) kalah)))])
-
-; Кнопка для новой игры CvC
-(new button% [parent frame]
-     [label "Новая игра (CvC)"]
-     [vert-margin 8]
-     [horiz-margin 8]
-     [min-width 330]
-     [min-height 50]
-     [font fnt]
-     [callback (lambda (button event)
-                  (play-cvc kalah simple-mancala-best-player1 simple-mancala-best-player2))])
-
 ; Игровое поле
 (define panel1 (new horizontal-panel% [parent frame]
                     [style '(border)]
                     [min-height 400]))
+
 ; Калах второго игрока
 (define kalah1 (new panel% [parent panel1]
                     [style '(border)]
@@ -453,9 +361,9 @@
                  [min-height 200]))
 ; Нижние ямы
 (define bot (new horizontal-panel% [parent board]
-                    [style '(border)]
-                    [alignment '(center center)]
-                    [min-height 200]))
+                 [style '(border)]
+                 [alignment '(center center)]
+                 [min-height 200]))
 
 (define topbut (make-vector 6))
 (for ([i '(5 4 3 2 1 0)])
@@ -465,8 +373,8 @@
                              [horiz-margin 8]
                              [callback (lambda (button event)
                                          (begin
-                                          (set! new-state (cdr (assoc (+ i 7) ((game-successors-fun kalah) new-state))))
-                                          (play-pvp new-state kalah)))])))
+                                           (set! new-state (cdr (assoc (+ i 7) ((game-successors-fun kalah) new-state))))
+                                           (play-pvp new-state kalah)))])))
 
 (define botbut (make-vector 6))
 (for ([x '(0 1 2 3 4 5)])
@@ -476,7 +384,50 @@
                              [horiz-margin 8]
                              [callback (lambda (button event)
                                          (begin
-                                          (set! new-state (cdr (assoc x ((game-successors-fun kalah) new-state))))
-                                          (play-pvp new-state kalah)))])))
+                                           (set! new-state (cdr (assoc x ((game-successors-fun kalah) new-state))))
+                                           (play-pvp new-state kalah)))])))
+(define panel2 (new vertical-panel% [parent panel1]
+                    [style '(border)]
+                    [min-height 400]))
+
+(define game-name (new message% [parent panel2]
+                       [min-width 350]
+                       [min-height 50]
+                       [font fnt]
+                       [auto-resize #t]
+                       [label "Калах"]))
+; Кнопка для новой игры PvP
+(define pvp (new button% [parent panel2]
+                 [label "Новая игра (PvP)"]
+                 [vert-margin 8]
+                 [horiz-margin 8]
+                 [min-width 330]
+                 [min-height 50]
+                 [font fnt]
+                 [callback (lambda (button event)
+                             (begin
+                               (set! new-state kalah-start-state)
+                               (play-pvp (game-start-state kalah) kalah)))]))
+
+; Кнопка для новой игры CvC
+(define cvc (new button% [parent panel2]
+                 [label "Новая игра (CvC)"]
+                 [vert-margin 8]
+                 [horiz-margin 8]
+                 [min-width 330]
+                 [min-height 50]
+                 [font fnt]
+                 [callback (lambda (button event)
+                             (begin
+                               (send msg set-label "Играют ИИ, ждите")
+                               (play-cvc kalah simple-mancala-best-player1 simple-mancala-best-player2)))]))
+
+; статичное сообщение
+(define msg (new message% [parent panel2]
+                 [min-width 350]
+                 [min-height 50]
+                 [font fnt]
+                 [auto-resize #t]
+                 [label "Выберите режим игры"]))
 
 (send frame show #t)
