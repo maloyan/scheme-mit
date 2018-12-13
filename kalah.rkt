@@ -235,6 +235,7 @@
 
 (define new-state
   (list #t 6 6 6 6 6 6 0 6 6 6 6 6 6 0))
+(define game-type #f)
 
 (define (play-pvp state game)
   (if ((game-terminal? game) state)
@@ -303,9 +304,18 @@
           
             (send klhb set-label (number->string (list-ref state 7)))
             (send klht set-label (number->string (list-ref state 14)))
-            (sleep 1)
             (play (cdr (assoc move ((game-successors-fun game) state)))))))))
 
+
+(define (make-move-against-human)
+  (cond ((and game-type (not (car new-state)))
+         (begin
+           (for ([x '(0 1 2 3 4 5)])
+             (send (vector-ref botbut x) enable #f)
+             (send (vector-ref topbut x) enable #f))
+           (set! new-state (cdr (assoc (simple-mancala-best-player2 new-state) ((game-successors-fun kalah) new-state))))
+           (play-pvp new-state kalah)
+           (make-move-against-human)))))
 ; Инициализация игры
 (define kalah (make-kalah-game))
 
@@ -385,7 +395,8 @@
                              [callback (lambda (button event)
                                          (begin
                                            (set! new-state (cdr (assoc x ((game-successors-fun kalah) new-state))))
-                                           (play-pvp new-state kalah)))])))
+                                           (play-pvp new-state kalah)
+                                           (make-move-against-human)))])))
 (define panel2 (new vertical-panel% [parent panel1]
                     [style '(border)]
                     [min-height 400]))
@@ -407,6 +418,21 @@
                  [callback (lambda (button event)
                              (begin
                                (set! new-state kalah-start-state)
+                               (set! game-type #f)
+                               (play-pvp (game-start-state kalah) kalah)))]))
+
+; Кнопка для новой игры PvС
+(define pvс (new button% [parent panel2]
+                 [label "Новая игра (PvС)"]
+                 [vert-margin 8]
+                 [horiz-margin 8]
+                 [min-width 330]
+                 [min-height 50]
+                 [font fnt]
+                 [callback (lambda (button event)
+                             (begin
+                               (set! new-state kalah-start-state)
+                               (set! game-type #t)
                                (play-pvp (game-start-state kalah) kalah)))]))
 
 ; Кнопка для новой игры CvC
